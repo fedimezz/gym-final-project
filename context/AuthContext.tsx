@@ -24,6 +24,7 @@ interface AuthContextValue {
   isLoading: boolean;
   login: (role: string, user?: StoredUser) => void;
   logout: () => void;
+  updateUser: (patch: Partial<StoredUser>) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -72,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Cross-tab sync.
     window.addEventListener("storage", syncFromStorage);
-    // Same-tab sync (fired by login()/logout() below).
+    // Same-tab sync (fired by login()/logout()/updateUser() below).
     window.addEventListener(AUTH_CHANGE_EVENT, syncFromStorage);
 
     return () => {
@@ -115,6 +116,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  // updateUser: merge a partial patch into the current user, update both
+  // React state and localStorage atomically, then broadcast so Navbar and
+  // DashboardHeader re-render immediately — no page refresh needed.
+  // Used by the profile page after a successful avatar/name/phone save.
+  const updateUser = useCallback((patch: Partial<StoredUser>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...patch };
+      try {
+        localStorage.setItem("user", JSON.stringify(next));
+      } catch {
+        // localStorage quota exceeded — state still updates in memory
+      }
+      return next;
+    });
+    // Dispatch after the state update so any listener that re-reads
+    // localStorage gets the freshly written value.
+    setTimeout(() => window.dispatchEvent(new Event(AUTH_CHANGE_EVENT)), 0);
+  }, []);
+
   const value: AuthContextValue = {
     isLoggedIn: Boolean(userRole),
     userRole,
@@ -122,6 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
     login,
     logout,
+    updateUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -118,7 +118,7 @@ much further.
   `next.config.ts`. It allows `'unsafe-inline'` for scripts because of the
   two small inline theme/language init scripts in `app/layout.tsx`; moving
   those to a nonce-based CSP would let you drop `'unsafe-inline'`, but that
-  needs per-request header injection (e.g. from `middleware.ts`) rather
+  needs per-request header injection (e.g. from `proxy.ts`) rather
   than the static config used here.
 - There is still no integration/e2e test suite (see "Tests" above) — auth
   flows, booking, payments, and admin actions are exercised by manual

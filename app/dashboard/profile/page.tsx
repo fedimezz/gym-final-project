@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/context/AuthContext";
 import { Loader2, RefreshCw } from "lucide-react";
 
 import ProfileAvatar from "@/components/profile/ProfileAvatar";
@@ -40,10 +41,10 @@ interface UserProfile {
 // ─── Toast Component ──────────────────────────────────────────────────────
 
 function Toast({
-  message,
-  type,
-  onClose,
-}: {
+                 message,
+                 type,
+                 onClose,
+               }: {
   message: string;
   type: "success" | "error";
   onClose: () => void;
@@ -54,23 +55,23 @@ function Toast({
   }, [onClose]);
 
   return (
-    <div
-      className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-lg border text-sm font-medium animate-fade-in max-w-sm
+      <div
+          className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-lg border text-sm font-medium animate-fade-in max-w-sm
         ${
-          type === "success"
-            ? "bg-card border-green-500/30 text-green-600 dark:text-green-400"
-            : "bg-card border-red-500/30 text-red-600 dark:text-red-400"
-        }`}
-    >
-      <span className="flex-1">{message}</span>
-      <button
-        onClick={onClose}
-        className="ml-2 opacity-50 hover:opacity-100 transition-opacity"
-        aria-label="Fermer la notification"
+              type === "success"
+                  ? "bg-card border-green-500/30 text-green-600 dark:text-green-400"
+                  : "bg-card border-red-500/30 text-red-600 dark:text-red-400"
+          }`}
       >
-        ✕
-      </button>
-    </div>
+        <span className="flex-1">{message}</span>
+        <button
+            onClick={onClose}
+            className="ml-2 opacity-50 hover:opacity-100 transition-opacity"
+            aria-label="Fermer la notification"
+        >
+          ✕
+        </button>
+      </div>
   );
 }
 
@@ -82,22 +83,12 @@ export default function ProfilePage() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  const { updateUser } = useAuth();
   const showToast = useCallback((message: string, type: "success" | "error") => {
     setToast({ message, type });
   }, []);
 
-  const syncAuthUser = useCallback((updatedUser: Record<string, unknown>) => {
-    if (typeof window === "undefined") return;
-    try {
-      const current = localStorage.getItem("user");
-      if (!current) return;
-      const parsed = JSON.parse(current);
-      localStorage.setItem("user", JSON.stringify({ ...parsed, ...updatedUser }));
-      window.dispatchEvent(new Event("auth-change"));
-    } catch {
-      // Ignore local storage issues
-    }
-  }, []);
+
 
   const fetchProfile = useCallback(async (showLoading = true) => {
     if (showLoading) setLoading(true);
@@ -139,7 +130,7 @@ export default function ProfilePage() {
       const data = await res.json();
       if (res.ok) {
         setProfile((prev) => (prev ? { ...prev, ...data.user } : prev));
-        syncAuthUser(data.user ?? {});
+        updateUser(data.user ?? {});
         showToast("Profil mis à jour avec succès", "success");
         return true;
       } else {
@@ -179,29 +170,29 @@ export default function ProfilePage() {
   // ── Loading ──
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 size={44} className="animate-spin text-primary" />
-          <p className="text-sm text-muted">Chargement de votre profil...</p>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 size={44} className="animate-spin text-primary" />
+            <p className="text-sm text-muted">Chargement de votre profil...</p>
+          </div>
         </div>
-      </div>
     );
   }
 
   if (!profile) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-5">
-        <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center">
-          <span className="text-4xl">👤</span>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-5">
+          <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center">
+            <span className="text-4xl">👤</span>
+          </div>
+          <p className="text-muted text-center">Profil introuvable.</p>
+          <button
+              onClick={() => fetchProfile(true)}
+              className="px-6 py-2.5 bg-primary text-white rounded-xl hover:bg-primary-dark transition-colors text-sm font-medium"
+          >
+            Réessayer
+          </button>
         </div>
-        <p className="text-muted text-center">Profil introuvable.</p>
-        <button
-          onClick={() => fetchProfile(true)}
-          className="px-6 py-2.5 bg-primary text-white rounded-xl hover:bg-primary-dark transition-colors text-sm font-medium"
-        >
-          Réessayer
-        </button>
-      </div>
     );
   }
 
@@ -221,7 +212,7 @@ export default function ProfilePage() {
         return false;
       }
       setProfile((prev) => (prev ? { ...prev, avatar: data.user?.avatar ?? null } : prev));
-      syncAuthUser({ avatar: data.user?.avatar ?? null });
+      updateUser({ avatar: data.user?.avatar ?? null });
       showToast("Photo de profil mise à jour", "success");
       return true;
     } catch {
@@ -232,64 +223,64 @@ export default function ProfilePage() {
 
   // ── Render ──
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Page header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-primary">Mon Profil</h1>
-          <p className="mt-1 text-muted">
-            Gérez vos informations personnelles et votre sécurité.
-          </p>
+      <div className="space-y-8 animate-fade-in">
+        {/* Page header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-bold text-primary">Mon Profil</h1>
+            <p className="mt-1 text-muted">
+              Gérez vos informations personnelles et votre sécurité.
+            </p>
+          </div>
+          <button
+              onClick={() => fetchProfile(false)}
+              disabled={isRefreshing}
+              className="flex items-center gap-2 px-4 py-2.5 text-sm bg-muted hover:bg-muted/70 rounded-xl transition-colors disabled:opacity-50 font-medium"
+          >
+            {isRefreshing ? (
+                <Loader2 size={16} className="animate-spin" />
+            ) : (
+                <RefreshCw size={16} />
+            )}
+            {isRefreshing ? "Actualisation..." : "Actualiser"}
+          </button>
         </div>
-        <button
-          onClick={() => fetchProfile(false)}
-          disabled={isRefreshing}
-          className="flex items-center gap-2 px-4 py-2.5 text-sm bg-muted hover:bg-muted/70 rounded-xl transition-colors disabled:opacity-50 font-medium"
-        >
-          {isRefreshing ? (
-            <Loader2 size={16} className="animate-spin" />
-          ) : (
-            <RefreshCw size={16} />
-          )}
-          {isRefreshing ? "Actualisation..." : "Actualiser"}
-        </button>
+
+        {/* Main grid */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Left column */}
+          <div className="space-y-6">
+            <ProfileAvatar
+                name={profile.name}
+                email={profile.email}
+                avatar={profile.avatar}
+                role={profile.role}
+                createdAt={profile.createdAt}
+                attendanceCount={profile._count.attendances}
+                bookingCount={profile._count.userSessions}
+                onAvatarChange={handleAvatarChange}
+            />
+            <ProfileMembershipCard card={profile.membershipCard} />
+          </div>
+
+          {/* Right columns */}
+          <div className="lg:col-span-2 space-y-6">
+            <ProfileInfoCard
+                name={profile.name}
+                email={profile.email}
+                phone={profile.phone}
+                role={profile.role}
+                onSave={handleSaveInfo}
+            />
+            <ProfileSubscriptionCard subscription={activeSubscription} />
+            <ProfilePasswordCard onSave={handleChangePassword} />
+          </div>
+        </div>
+
+        {/* Toast */}
+        {toast && (
+            <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+        )}
       </div>
-
-      {/* Main grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left column */}
-        <div className="space-y-6">
-          <ProfileAvatar
-            name={profile.name}
-            email={profile.email}
-            avatar={profile.avatar}
-            role={profile.role}
-            createdAt={profile.createdAt}
-            attendanceCount={profile._count.attendances}
-            bookingCount={profile._count.userSessions}
-            onAvatarChange={handleAvatarChange}
-          />
-          <ProfileMembershipCard card={profile.membershipCard} />
-        </div>
-
-        {/* Right columns */}
-        <div className="lg:col-span-2 space-y-6">
-          <ProfileInfoCard
-            name={profile.name}
-            email={profile.email}
-            phone={profile.phone}
-            role={profile.role}
-            onSave={handleSaveInfo}
-          />
-          <ProfileSubscriptionCard subscription={activeSubscription} />
-          <ProfilePasswordCard onSave={handleChangePassword} />
-        </div>
-      </div>
-
-      {/* Toast */}
-      {toast && (
-        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
-      )}
-    </div>
   );
 }

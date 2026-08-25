@@ -11,7 +11,7 @@ interface MiddlewareJWTPayload {
   name: string;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith("/_next") || pathname.startsWith("/api/auth")) {
@@ -20,10 +20,10 @@ export async function middleware(request: NextRequest) {
 
   const isApiRoute = pathname.startsWith("/api/");
   const isProtected =
-    pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/admin") ||
-    pathname.startsWith("/api/dashboard") ||
-    pathname.startsWith("/api/admin");
+      pathname.startsWith("/dashboard") ||
+      pathname.startsWith("/admin") ||
+      pathname.startsWith("/api/dashboard") ||
+      pathname.startsWith("/api/admin");
 
   if (!isProtected) {
     return NextResponse.next();

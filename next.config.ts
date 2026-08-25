@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+const isDev = process.env.NODE_ENV === "development";
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
@@ -42,11 +44,17 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline'",
+              // React requires eval() in dev mode for callstack reconstruction.
+              // 'unsafe-eval' is stripped in production to stay strict.
+              `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com",
               "font-src 'self' data:",
-              "connect-src 'self'",
+              // blob: needed for Three.js GLB embedded texture extraction (creates blob URLs internally)
+              // data: needed for Three.js data URIs
+              "connect-src 'self' blob: data:",
+              // Three.js can spawn Web Workers from blob: URLs for geometry processing
+              "worker-src 'self' blob:",
               "media-src 'self' https://res.cloudinary.com",
               "object-src 'none'",
               "base-uri 'self'",
